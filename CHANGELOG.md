@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0 — unreleased
+## 0.1.1 — 2026-10-01
+
+- Fix: the "new version — Reload" banner did nothing during the first session
+  after installing the PWA (the page wasn't controlled by the service worker,
+  so the plugin's reload never fired). The button now always reloads into the
+  new version, and the service worker claims pages on activation, so the
+  offline cache works from the very first visit.
+
+## 0.1.0 — 2026-10-01
 
 First version.
 

@@ -44,6 +44,10 @@ export default defineConfig(() => ({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         importScripts: ["push-sw.js"],
+        // Take control of open pages as soon as a SW activates. Without it the
+        // first session after install stays uncontrolled: no offline cache, and
+        // no controllerchange for the update banner to react to.
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,svg,png,woff2,ico}"],
         // Latin font subsets only; the others load on demand via unicode-range.
         globIgnores: ["**/*-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2"],
