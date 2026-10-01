@@ -1,45 +1,39 @@
 # Deploying Farseer
 
-Same shape as Lucarne: **one Docker image** (Hono on Bun serving the SPA, the
-API and the in-process poller on port 3000) + **one Postgres addon**, on
-**Northflank**'s free tier.
+**Live setup** (since 2026-10-01): one Northflank **combined service**
+(`farseer`, the root `Dockerfile`: Hono on Bun serving the SPA, the API and the
+in-process poller on port 3000) + an external **Supabase** Postgres (free tier).
 
-> 🔑 Secrets (`VAPID_PRIVATE_KEY`, `CRON_SECRET`) go in as Northflank secret env
-> vars and never land in git or the image. Keep the VAPID pair in your password
-> manager: **regenerating it silently kills notifications on every installed
-> PWA**.
+Why not the Lucarne layout (separate project + Postgres addon)? Northflank's
+free tier is **1 project, 2 services, 1 database**, and Lucarne holds the
+project and the database. So:
 
-## Option 1 — Infrastructure as code (recommended)
+- the `farseer` service lives **inside the `lucarne` project** (2nd free
+  service slot). Lucarne has no project-wide secret groups, so nothing leaks
+  between the two services; each has its own env vars, build and URL;
+- the database is **Supabase** (500 MB, always on; it only pauses after a week
+  of inactivity, and the poller writes every minute). Neon's free tier does not
+  fit: 100 compute-hours/month with scale-to-zero, and we're never idle.
 
-[`northflank.template.json`](northflank.template.json) describes the project,
-the Postgres addon and the service. Secrets are passed as arguments at run time.
+> 🔑 Secrets live in the service's env vars (Northflank) and in gitignored
+> local files only: `apps/api/.env.local` (VAPID keypair, CRON_SECRET) and
+> `apps/api/.env.prod.local` (Supabase `DATABASE_URL`). Keep them in your
+> password manager: **regenerating the VAPID pair silently kills notifications
+> on every installed PWA**.
 
-```bash
-npm i -g @northflank/cli
-northflank login -t <API_TOKEN>
-northflank get addon-types   # confirm the "postgresql" slug / version
-northflank list plans        # confirm nf-compute-20 / the build plan
-northflank run template -f ./northflank.template.json
-```
+## Service settings
 
-What the template wires up:
+- Build: GitHub `salty-max/farseer@main`, Dockerfile `/Dockerfile`, CI on (every
+  push to `main` redeploys). Plans `nf-compute-20` / build `nf-compute-400-16`.
+- Port `p01` 3000, public HTTPS.
+- Env: `DATABASE_URL` (Supabase **session pooler** URI + `?sslmode=require`; the
+  direct connection is IPv6-only), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT`, `CRON_SECRET`, `LOG_FORMAT=json`.
 
-- **`DATABASE_URL`** ← the addon's **`POSTGRES_URI_ADMIN`**. Not `POSTGRES_URI`:
-  the standard user can't `CREATE SCHEMA`, so the boot-time migration fails with
-  `permission denied for database` and the container crash-loops (the Lucarne
-  gotcha).
-- **Port** 3000, public HTTPS (Northflank doesn't inject `PORT`; the server
-  defaults to 3000).
-- **CI**: every push to `main` rebuilds and redeploys.
-
-## Option 2 — dashboard
-
-1. New project (EU-West) → **Add-on** PostgreSQL (`farseer-db`, external access off).
-2. **Combined service** from `salty-max/farseer@main`, Dockerfile build, port
-   3000 public.
-3. Env: `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `LOG_FORMAT=json`; secrets:
-   `VAPID_PRIVATE_KEY`, `CRON_SECRET`; link the addon and expose
-   **`POSTGRES_URI_ADMIN` as `DATABASE_URL`**.
+[`northflank.template.json`](northflank.template.json) describes the same service
+for a fresh account (own project, `DATABASE_URL` as an argument). On a free
+account that already has a project, create the service directly instead:
+`northflank create service combined --projectId <project> -f <spec.json>`.
 
 ## First boot
 

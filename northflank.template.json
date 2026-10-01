@@ -1,13 +1,14 @@
 {
   "apiVersion": "v1.2",
   "name": "farseer",
-  "description": "Farseer monolith (Bun/Hono: SPA + API + in-process poller) + Postgres addon",
+  "description": "Farseer monolith (Bun/Hono: SPA + API + in-process poller); Postgres is external (Supabase free tier)",
   "options": {
     "autorun": false,
     "concurrencyPolicy": "allow",
     "runOnUpdate": false
   },
   "arguments": {
+    "DATABASE_URL": "",
     "VAPID_PUBLIC_KEY": "",
     "VAPID_PRIVATE_KEY": "",
     "VAPID_SUBJECT": "https://github.com/salty-max/farseer",
@@ -38,22 +39,6 @@
               "projectId": "${refs.project.id}"
             },
             "steps": [
-              {
-                "kind": "Addon",
-                "ref": "database",
-                "spec": {
-                  "name": "farseer-db",
-                  "type": "postgresql",
-                  "version": "latest",
-                  "externalAccessEnabled": false,
-                  "tlsEnabled": false,
-                  "billing": {
-                    "replicas": 1,
-                    "storage": 4096,
-                    "deploymentPlan": "nf-compute-20"
-                  }
-                }
-              },
               {
                 "kind": "CombinedService",
                 "ref": "app",
@@ -107,23 +92,11 @@
                   "priority": 10,
                   "secrets": {
                     "variables": {
+                      "DATABASE_URL": "${args.DATABASE_URL}",
                       "VAPID_PRIVATE_KEY": "${args.VAPID_PRIVATE_KEY}",
                       "CRON_SECRET": "${args.CRON_SECRET}"
                     }
                   },
-                  "addonDependencies": [
-                    {
-                      "addonId": "${refs.database.id}",
-                      "keys": [
-                        {
-                          "keyName": "POSTGRES_URI_ADMIN",
-                          "aliases": [
-                            "DATABASE_URL"
-                          ]
-                        }
-                      ]
-                    }
-                  ],
                   "restrictions": {
                     "restricted": false,
                     "nfObjects": [],
