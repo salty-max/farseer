@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#1b2232"/>
+      <stop offset="1" stop-color="#0b0d12"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="0.5" stop-color="#f8b700"/>
+      <stop offset="1" stop-color="#a86f00"/>
+    </linearGradient>
+    <radialGradient id="iris" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#d8f4ff"/>
+      <stop offset="0.35" stop-color="#4cc3ff"/>
+      <stop offset="1" stop-color="#0a5fa8"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="#5a4a2a" stroke-width="6"/>
+  <!-- glow -->
+  <circle cx="256" cy="262" r="70" fill="#33b5ff" opacity="0.55" filter="url(#glow)"/>
+  <!-- eye -->
+  <path d="M64 262 C 140 150, 372 150, 448 262 C 372 374, 140 374, 64 262 Z" fill="#0b0d12" stroke="url(#gold)" stroke-width="22" stroke-linejoin="round"/>
+  <circle cx="256" cy="262" r="74" fill="url(#iris)"/>
+  <path d="M256 214 L 270 262 L 256 310 L 242 262 Z" fill="#0b0d12"/>
+  <circle cx="230" cy="236" r="12" fill="#ffffff" opacity="0.85"/>
+  <!-- crown rays -->
+  <path d="M256 70 L 270 128 L 256 118 L 242 128 Z" fill="url(#gold)"/>
+  <path d="M150 104 L 186 150 L 170 148 L 162 162 Z" fill="url(#gold)"/>
+  <path d="M362 104 L 326 150 L 342 148 L 350 162 Z" fill="url(#gold)"/>
+  <path d="M256 454 L 270 396 L 256 406 L 242 396 Z" fill="url(#gold)" opacity="0.6"/>
+</svg>

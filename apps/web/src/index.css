@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+/*
+ * Farseer — a dark, WoW-flavoured reader. Night-stone surfaces, parchment text,
+ * quest-gold accents, and Blizzard blue reserved for staff names. Item-quality
+ * colours tag topics.
+ */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
+
+  --color-night: #0b0d12;
+  --color-stone: #12151c;
+  --color-stone-2: #181c25;
+  --color-stone-3: #222735;
+  --color-edge: #2b3140;
+  --color-edge-gold: #5a4a2a;
+
+  --color-parchment: #ece3cf;
+  --color-ink-dim: #a39b88;
+  --color-ink-faint: #6f6a5e;
+
+  --color-gold: #f8b700;
+  --color-gold-soft: #d9a441;
+  --color-blue: #33b5ff; /* blue-post names */
+  --color-blue-dev: #6fd3ff;
+
+  /* item qualities */
+  --color-q-poor: #9d9d9d;
+  --color-q-uncommon: #1eff00;
+  --color-q-rare: #0070dd;
+  --color-q-epic: #a335ee;
+  --color-q-legendary: #ff8000;
+  --color-q-artifact: #e6cc80;
+  --color-q-danger: #ff4040;
+  --color-q-heirloom: #00ccff;
+
+  /* games */
+  --color-g-retail: #f8b700;
+  --color-g-classic: #c79c6e;
+  --color-g-forever: #3fd9a5;
+}
+
+@layer base {
+  html {
+    background: var(--color-night);
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-night text-parchment font-sans antialiased;
+    min-height: 100dvh;
+    background-image:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgb(51 181 255 / 0.07), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% 110%, rgb(248 183 0 / 0.04), transparent 60%);
+    background-attachment: fixed;
+  }
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold-soft);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: rgb(248 183 0 / 0.3);
+  }
+}
+
+@layer components {
+  /* Framed panel with a faint gilded top edge, like an in-game window. */
+  .panel {
+    @apply rounded-xl border border-edge bg-stone/90;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 1px 0 rgb(0 0 0 / 0.4);
+  }
+  .panel-gold {
+    @apply rounded-xl border border-edge-gold bg-stone/90;
+    box-shadow:
+      inset 0 1px 0 rgb(248 183 0 / 0.12),
+      0 0 0 1px rgb(0 0 0 / 0.5);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-edge bg-stone-2 px-3 py-1.5 text-sm text-ink-dim transition-colors select-none;
+  }
+  .chip[aria-pressed="true"] {
+    @apply border-gold-soft/70 bg-gold/10 text-parchment;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-edge bg-stone-2 px-3 py-2 text-sm text-parchment transition-colors hover:border-gold-soft/60 hover:bg-stone-3 disabled:opacity-50;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-gold/60 bg-gradient-to-b from-[#3a2c0c] to-[#211806] px-3 py-2 text-sm font-semibold text-gold transition-colors hover:border-gold disabled:opacity-50;
+  }
+  .icon-btn {
+    @apply inline-flex size-10 items-center justify-center rounded-lg text-ink-dim transition-colors hover:bg-stone-2 hover:text-parchment;
+  }
+  .title-display {
+    @apply font-display tracking-wide;
+  }
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(248 183 0 / 0.45), transparent);
+  }
+}
+
+/* Forum post body (cooked Discourse HTML, sanitized). */
+.post-body {
+  @apply leading-relaxed text-parchment/95 break-words;
+}
+.post-body p,
+.post-body ul,
+.post-body ol,
+.post-body pre,
+.post-body blockquote,
+.post-body details,
+.post-body table {
+  @apply my-3;
+}
+.post-body h1,
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  @apply mt-6 mb-2 font-display text-gold-soft;
+}
+.post-body h1 { @apply text-xl; }
+.post-body h2 { @apply text-lg; }
+.post-body h3,
+.post-body h4 { @apply text-base; }
+.post-body ul { @apply list-disc pl-5; }
+.post-body ol { @apply list-decimal pl-5; }
+.post-body li { @apply my-1; }
+.post-body li > ul,
+.post-body li > ol { @apply my-1; }
+.post-body a { @apply text-blue underline decoration-blue/40 underline-offset-2 hover:decoration-blue; }
+.post-body strong { @apply text-parchment font-semibold; }
+.post-body img { @apply my-2 h-auto max-w-full rounded-lg; }
+.post-body img.emoji { @apply my-0 inline size-5 align-text-bottom; }
+.post-body hr { @apply my-6 border-edge; }
+.post-body code { @apply rounded bg-stone-3 px-1 py-0.5 text-[13px]; }
+.post-body pre { @apply overflow-x-auto rounded-lg bg-stone-3 p-3; }
+.post-body pre code { @apply bg-transparent p-0; }
+.post-body blockquote,
+.post-body aside.quote { @apply border-l-2 border-edge-gold bg-stone-2/60 px-3 py-2 text-ink-dim rounded-r-lg; }
+.post-body aside.quote .title { @apply mb-1 text-xs text-ink-faint; }
+.post-body aside.quote blockquote { @apply m-0 border-0 bg-transparent p-0; }
+.post-body aside.quote .title img { @apply hidden; }
+.post-body details { @apply rounded-lg border border-edge bg-stone-2/60 px-3 py-2; }
+.post-body summary { @apply cursor-pointer font-semibold text-gold-soft; }
+.post-body table { @apply block overflow-x-auto text-sm; }
+.post-body th,
+.post-body td { @apply border border-edge px-2 py-1; }
+.post-body .lightbox-wrapper .meta { @apply hidden; }
+.post-body mark { @apply rounded bg-gold/25 px-0.5 text-parchment; }
+
+mark.hl {
+  @apply rounded bg-gold/25 px-0.5 text-parchment;
+}
+/* Notification keywords: an underline, so they read differently from a search hit. */
+mark.kw {
+  @apply rounded-sm bg-transparent text-inherit underline decoration-gold decoration-2 underline-offset-[3px];
+}
+
+/* Official class colours. */
+.cc {
+  font-weight: 600;
+}
+.cc[data-c="deathknight"] { color: #c41e3a; }
+.cc[data-c="demonhunter"] { color: #a330c9; }
+.cc[data-c="druid"] { color: #ff7c0a; }
+.cc[data-c="evoker"] { color: #33937f; }
+.cc[data-c="hunter"] { color: #aad372; }
+.cc[data-c="mage"] { color: #3fc7eb; }
+.cc[data-c="monk"] { color: #00ff98; }
+.cc[data-c="paladin"] { color: #f48cba; }
+.cc[data-c="priest"] { color: #ffffff; }
+.cc[data-c="rogue"] { color: #fff468; }
+.cc[data-c="shaman"] { color: #0070dd; }
+.cc[data-c="warlock"] { color: #8788ee; }
+.cc[data-c="warrior"] { color: #c69b6d; }
+/* The darkest two need a lift to stay legible on night-stone. */
+.cc[data-c="shaman"],
+.cc[data-c="deathknight"] {
+  text-shadow: 0 0 1px rgb(255 255 255 / 0.25);
+}
+
+.post-body[data-size="sm"] { font-size: 14px; }
+.post-body[data-size="md"] { font-size: 15px; }
+.post-body[data-size="lg"] { font-size: 17.5px; line-height: 1.7; }
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
