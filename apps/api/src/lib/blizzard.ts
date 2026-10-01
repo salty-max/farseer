@@ -1,4 +1,5 @@
 import type { AuthorRole, Region } from "@farseer/shared";
+import { log } from "@/lib/log";
 
 /**
  * Client for the Blizzard WoW forums (Discourse). Everything we need is public
@@ -31,6 +32,34 @@ export function setFetch(f: FetchFn): void {
 
 const RETRY_DELAYS_MS = [1_500, 5_000];
 
+/**
+ * Request pacing. The forums are Discourse, whose default per-IP limits are 50
+ * requests / 10 s and 200 / min (Blizzard publishes nothing, and a backfill at
+ * ~5 req/s did get 429s). Every request goes through one queue that keeps at
+ * least `paceMs` between request starts, so no combination of jobs can burst.
+ */
+export const DEFAULT_PACE_MS = 250; // ≤ 4 req/s for the live jobs
+let paceMs = DEFAULT_PACE_MS;
+let nextSlot = 0;
+let queue: Promise<void> = Promise.resolve();
+
+/** Change the spacing between requests; returns the previous value. */
+export function setPace(ms: number): number {
+  const prev = paceMs;
+  paceMs = ms;
+  return prev;
+}
+
+function paced(): Promise<void> {
+  const turn = queue.then(async () => {
+    const wait = nextSlot - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    nextSlot = Date.now() + paceMs;
+  });
+  queue = turn.catch(() => {});
+  return turn;
+}
+
 class HttpError extends Error {
   constructor(
     url: string,
@@ -45,6 +74,7 @@ class HttpError extends Error {
 }
 
 async function getOnce<T>(url: string): Promise<T> {
+  await paced();
   const res = await fetchImpl(url, {
     headers: { "User-Agent": UA, Accept: "application/json" },
     redirect: "follow",
@@ -63,6 +93,16 @@ async function getJson<T>(url: string): Promise<T> {
       return await getOnce<T>(url);
     } catch (err) {
       const http = err instanceof HttpError ? err : null;
+      if (http?.status === 429) {
+        // Logged every time: in prod this is the signal that we're near the
+        // forum's limits (or sharing an egress IP with someone who is).
+        log.warn("forum.rate_limited", {
+          path: new URL(url).pathname,
+          retryAfterMs: http.retryAfterMs,
+          attempt: attempt + 1,
+          paceMs,
+        });
+      }
       if ((http && !http.retryable) || attempt >= RETRY_DELAYS_MS.length) throw err;
       await new Promise((r) => setTimeout(r, http?.retryAfterMs ?? RETRY_DELAYS_MS[attempt]));
     }

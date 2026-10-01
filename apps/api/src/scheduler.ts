@@ -23,6 +23,9 @@ function guarded(name: string, job: () => Promise<unknown>): () => Promise<void>
  *   - every minute: poll the US + EU blue trackers (2 requests when idle) and
  *     push anything new
  *   - every 15 min: re-check recent hotfix / patch-notes threads for edits
+ *     (last 7 days, at most 10 threads: ≤ 10 requests per run)
+ * All forum requests share one pacer (≥ 250 ms apart, 1 s during a backfill),
+ * see lib/blizzard.ts.
  */
 export function startScheduler(): void {
   const poll = guarded("poll", pollAll);

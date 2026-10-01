@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { avatarUrl, fetchTracker, postUrl, roleOf, setFetch } from "./blizzard";
+import { avatarUrl, DEFAULT_PACE_MS, fetchTracker, postUrl, roleOf, setFetch, setPace } from "./blizzard";
 import { blueText, stripQuotes } from "./ingest";
 
 describe("blizzard", () => {
@@ -27,9 +27,13 @@ describe("blizzard", () => {
 });
 
 describe("getJson retries", () => {
-  afterEach(() => setFetch((input, init) => fetch(input, init)));
+  afterEach(() => {
+    setFetch((input, init) => fetch(input, init));
+    setPace(DEFAULT_PACE_MS);
+  });
 
   it("retries a 429 and then succeeds", async () => {
+    setPace(0);
     let calls = 0;
     setFetch(async () => {
       calls++;
@@ -42,6 +46,7 @@ describe("getJson retries", () => {
   });
 
   it("does not retry a 404", async () => {
+    setPace(0);
     let calls = 0;
     setFetch(async () => {
       calls++;
@@ -49,5 +54,17 @@ describe("getJson retries", () => {
     });
     await expect(fetchTracker("us")).rejects.toThrow("404");
     expect(calls).toBe(1);
+  });
+
+  it("spaces requests out, even when fired concurrently", async () => {
+    setPace(40);
+    const starts: number[] = [];
+    setFetch(async () => {
+      starts.push(Date.now());
+      return Response.json({ posts: [] });
+    });
+    await Promise.all([fetchTracker("us"), fetchTracker("eu"), fetchTracker("us")]);
+    expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(35);
+    expect(starts[2] - starts[1]).toBeGreaterThanOrEqual(35);
   });
 });

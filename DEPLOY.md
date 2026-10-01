@@ -44,9 +44,17 @@ What the template wires up:
 ## First boot
 
 Nothing to seed by hand. The CMD runs migrations, then the server backfills
-the last ~200 blue posts per region (no pushes for history, ~2–3 min) and starts
-polling every minute. Watch for `backfill.done` then `scheduler.started` in the
-logs.
+the last ~200 blue posts per region (no pushes for history) and starts polling
+every minute. The backfill is deliberately paced at ~1 request/s to stay well
+under the forums' rate limits, so it takes **about 6 minutes**: the feed fills
+in at the end of each region. Watch for `backfill.done` then
+`scheduler.started` in the logs.
+
+Rate limits: Blizzard publishes none; the forums run Discourse (default 50
+requests / 10 s and 200 / min per IP). Live polling uses ~2 requests/min plus
+≤10 every 15 min. Any `forum.rate_limited` warning in the logs means we're being
+throttled. If they recur, Northflank's egress IP may be shared with heavier
+users.
 
 Manual levers (Bearer `CRON_SECRET`):
 

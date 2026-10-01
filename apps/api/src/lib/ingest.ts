@@ -10,6 +10,7 @@ import {
   fetchPostByNumber,
   fetchTracker,
   isBluePost,
+  setPace,
   ORIGIN,
   postUrl,
   roleOf,
@@ -25,8 +26,6 @@ import { setState } from "@/lib/state";
 /** A post older than this when we first see it is history, not news: no push. */
 const FRESH_MS = 6 * 3600 * 1000;
 const DEDUPE_WINDOW_MS = 48 * 3600 * 1000;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ── categories ────────────────────────────────────────────────────────────────
 
@@ -253,9 +252,8 @@ export async function pollRegion(
   {
     maxPages = 5,
     notify = true,
-    delayMs = 0,
     stopAtKnown = true,
-  }: { maxPages?: number; notify?: boolean; delayMs?: number; stopAtKnown?: boolean } = {},
+  }: { maxPages?: number; notify?: boolean; stopAtKnown?: boolean } = {},
 ): Promise<{ fresh: number }> {
   const fresh: TrackerPost[] = [];
   let before: number | undefined;
@@ -280,14 +278,12 @@ export async function pollRegion(
     }
     if (stopAtKnown && known.length > 0) break; // caught up with what we already have
     before = list[list.length - 1].id;
-    if (delayMs) await sleep(delayMs);
   }
 
   // Oldest first, so a crosspost's canonical copy is the earlier one.
   fresh.sort((a, b) => a.created_at.localeCompare(b.created_at));
   for (const p of fresh) {
     await ingestOne(region, p, { notify });
-    if (delayMs) await sleep(delayMs);
   }
   if (fresh.length) log.info("poll.ingested", { region, fresh: fresh.length });
   return { fresh: fresh.length };
@@ -334,7 +330,7 @@ export async function pollAll(): Promise<{ fresh: number; fired: number }> {
  * Living threads (hotfixes, patch notes, PTR notes, maintenance) get their first
  * post edited in place. Re-check the recent ones and record new versions.
  */
-export async function refreshEdits({ days = 30, limit = 25 } = {}): Promise<{ edited: number }> {
+export async function refreshEdits({ days = 7, limit = 10 } = {}): Promise<{ edited: number }> {
   const rows = await db
     .select()
     .from(posts)
@@ -375,11 +371,24 @@ export async function refreshEdits({ days = 30, limit = 25 } = {}): Promise<{ ed
   return { edited };
 }
 
-/** First-boot history: page back through each region's tracker, no pushes. */
+/** History import spacing: ~1 req/s keeps a backfill (≈2–3 requests per post)
+ *  far below Discourse's 50 req / 10 s, at the cost of a few minutes once. */
+const BACKFILL_PACE_MS = 1_000;
+
+/**
+ * First-boot history: page back through each region's tracker, no pushes.
+ * Slows every forum request to ~1/s while it runs (live jobs included, should
+ * they overlap via the admin route).
+ */
 export async function backfill(pages = 10): Promise<{ fresh: number }> {
-  let fresh = 0;
-  for (const region of REGIONS) {
-    fresh += (await pollRegion(region, { maxPages: pages, notify: false, delayMs: 500, stopAtKnown: false })).fresh;
+  const prev = setPace(BACKFILL_PACE_MS);
+  try {
+    let fresh = 0;
+    for (const region of REGIONS) {
+      fresh += (await pollRegion(region, { maxPages: pages, notify: false, stopAtKnown: false })).fresh;
+    }
+    return { fresh };
+  } finally {
+    setPace(prev);
   }
-  return { fresh };
 }
