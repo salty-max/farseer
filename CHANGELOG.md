@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-10-02
+
+- Hosting moves to Vercel (Vercel Cron polls the forums every minute) with the
+  same Supabase database: nothing changes in the app itself. Reinstall the PWA
+  from the new address.
+
 ## 0.1.1 — 2026-10-01
 
 - Fix: the "new version — Reload" banner did nothing during the first session

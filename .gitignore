@@ -35,3 +35,6 @@ dev-dist
 # local dev Postgres data (scripts/db.sh)
 .pgdata/
 .pgdata/
+
+# vercel build output
+.vercel

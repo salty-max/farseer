@@ -1,7 +1,8 @@
 # Farseer
 
 WoW blue-post tracker PWA (US + EU English forums) with filters and push. Built
-on the Lucarne template: same monorepo, stack, push code and Northflank deploy.
+on the Lucarne template: same monorepo, stack and push code. Hosted on Vercel
+Pro + Supabase (see DEPLOY.md).
 
 ## Monorepo (Turborepo + Bun workspaces)
 
@@ -9,7 +10,10 @@ on the Lucarne template: same monorepo, stack, push code and Northflank deploy.
   `ingest.ts` (poll / backfill / edit refresh / push fan-out), `classify.ts`
   (game + topics), `dedupe.ts` (US/EU crossposts), `filters.ts` (push matching),
   `feed.ts` (queries), `push.ts` + `webpush.ts` + `notify.ts` (Web Push).
-  `src/scheduler.ts`: poll every minute, edits every 15 min.
+  `lib/tick.ts`: one tick per minute (poll; edits every 15 min; backfill on a
+  fresh DB), run by `src/scheduler.ts` on the Bun server or by Vercel Cron via
+  `/api/admin/tick` (`src/vercel.ts` is the function entry, bundled by
+  `scripts/vercel-build.sh`). Never keep request-spanning state in memory.
 - `apps/web` — React 19 + Vite + Tailwind v4 + TanStack Router/Query. Routes in
   `src/router.tsx`; feed filters live in the URL (`lib/feedSearch.ts`); per-device
   state in localStorage stores (`lib/settings.ts`, `lib/library.ts`).
