@@ -1,6 +1,7 @@
 import type { SubscribeRequest } from "@farseer/shared";
 import { Hono } from "hono";
 import { authorizeCron } from "@/lib/auth";
+import { runTick } from "@/lib/tick";
 import { getMeta, getPost, listPosts, parsePostsQuery } from "@/lib/feed";
 import { parseFilters } from "@/lib/filters";
 import { backfill, pollAll, refreshEdits } from "@/lib/ingest";
@@ -72,6 +73,8 @@ app.use("/api/admin/*", async (c, next) => {
   if (!authorizeCron(c.req.raw)) return c.json({ error: "unauthorized" }, 401);
   await next();
 });
+// The scheduler, for hosts without a long-lived process (Vercel Cron, GET).
+app.on(["GET", "POST"], "/api/admin/tick", async (c) => c.json(await runTick()));
 app.post("/api/admin/poll", async (c) => c.json(await pollAll()));
 app.post("/api/admin/edits", async (c) => c.json(await refreshEdits()));
 app.post("/api/admin/backfill", async (c) => c.json(await backfill(Number(c.req.query("pages") ?? 10))));

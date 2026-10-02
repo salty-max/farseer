@@ -1,37 +1,23 @@
 import cron from "node-cron";
-import { pollAll, refreshEdits } from "@/lib/ingest";
 import { log } from "@/lib/log";
-
-/** Run a job unless the previous run of it is still going. */
-function guarded(name: string, job: () => Promise<unknown>): () => Promise<void> {
-  let running = false;
-  return async () => {
-    if (running) return;
-    running = true;
-    try {
-      await job();
-    } catch (err) {
-      log.error(`${name}.crash`, { err: String(err) });
-    } finally {
-      running = false;
-    }
-  };
-}
+import { runTick } from "@/lib/tick";
 
 /**
- * In-process scheduler (the server is a long-lived process on Northflank):
- *   - every minute: poll the US + EU blue trackers (2 requests when idle) and
- *     push anything new
- *   - every 15 min: re-check recent hotfix / patch-notes threads for edits
- *     (last 7 days, at most 10 threads: ≤ 10 requests per run)
- * All forum requests share one pacer (≥ 250 ms apart, 1 s during a backfill),
- * see lib/blizzard.ts.
+ * In-process scheduler for the Bun server (local dev, Docker): one tick every
+ * minute (see lib/tick.ts: poll, edits every 15 min, backfill on a fresh
+ * database). On Vercel, Vercel Cron calls /api/admin/tick instead. All forum
+ * requests share one pacer (≥ 250 ms apart, 1 s during a backfill), see
+ * lib/blizzard.ts.
  */
 export function startScheduler(): void {
-  const poll = guarded("poll", pollAll);
-  const edits = guarded("edits", refreshEdits);
-  cron.schedule("* * * * *", poll);
-  cron.schedule("*/15 * * * *", edits);
-  log.info("scheduler.started", { poll: "every minute", edits: "every 15 min" });
-  void poll();
+  const tick = async () => {
+    try {
+      await runTick();
+    } catch (err) {
+      log.error("tick.crash", { err: String(err) });
+    }
+  };
+  cron.schedule("* * * * *", tick);
+  log.info("scheduler.started", { tick: "every minute (edits every 15 min)" });
+  void tick();
 }
